@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>html,body{margin:0}</style>
+<title>Mixed Materials Probe</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout concept: a white model stand beside a workshop control sheet. One deliberate light look, matching the white slides. */
+:root{
+  --bg:#ffffff;--sheet:#f3f3f0;--ink:#1d2124;--mut:#596268;--line:#d3d6d6;--accent:#b5179f;--warn:#fff3d6;--warn-line:#d2a53a;
+  --disp:"Barlow Condensed","Arial Narrow",Arial,sans-serif;--body:"Barlow","Helvetica Neue",Arial,sans-serif;--mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.42 var(--body)}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 360px;height:100%}
+.vp{position:relative;min-width:0;min-height:0;background:var(--bg)}
+#c{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+#c:active{cursor:grabbing}
+#gl{display:none;padding:24px}
+.views{position:absolute;top:12px;left:max(12px,env(safe-area-inset-left,0px));display:flex;flex-wrap:wrap;gap:5px}
+.hint{position:absolute;bottom:10px;left:max(12px,env(safe-area-inset-left,0px));right:12px;font:400 12.5px/1.3 var(--mono);color:var(--mut);pointer-events:none}
+#hover{position:absolute;top:56px;left:max(12px,env(safe-area-inset-left,0px));font:600 20px/1 var(--disp);color:var(--accent);pointer-events:none}
+button{font:500 13px/1 var(--mono);padding:8px 10px;background:var(--bg);border:1px solid var(--line);color:var(--ink);cursor:pointer;border-radius:2px}
+button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{background:var(--sheet);border-left:1px solid var(--line);overflow-y:auto;min-width:0;padding-block:18px 28px;padding-left:18px;padding-right:max(18px,env(safe-area-inset-right,0px));display:grid;grid-auto-rows:max-content;grid-template-columns:minmax(0,1fr);gap:20px;align-content:start}
+h1,h2,h3{font-family:var(--disp);line-height:1.05;margin:0;text-wrap:balance}
+h1{font-size:38px;font-weight:700}h2{font-size:22px;font-weight:600;padding-top:12px;border-top:2px solid var(--ink)}h3{font-size:24px;font-weight:600}
+p{margin:0}section{display:grid;gap:9px;min-width:0}
+.mut{color:var(--mut)}
+#card{background:var(--bg);border:1px solid var(--line);padding:12px 13px;display:grid;gap:6px;min-height:88px;align-content:start}
+#card dl{margin:0;display:grid;grid-template-columns:62px minmax(0,1fr);gap:3px 8px}
+#card dt{font:400 12px/1.5 var(--mono);color:var(--mut)}#card dd{margin:0}
+.cardbtns{display:flex;gap:6px;margin-top:4px}
+.drive{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;align-items:center}
+#dial{width:120px;height:120px;touch-action:none;cursor:grab;display:block}
+#dial .ring{fill:var(--bg);stroke:var(--line);stroke-width:2}
+#dial line{stroke:var(--ink);stroke-width:5;stroke-linecap:round}
+#dial .knob{fill:var(--accent)}#dial .hubc{fill:var(--ink)}
+label{display:flex;gap:7px;align-items:center;cursor:pointer;min-width:0}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+input[type=checkbox],input[type=radio]{accent-color:var(--accent);margin:0;flex:none}
+.rangehead{display:flex;justify-content:space-between;font:400 12.5px/1.3 var(--mono);color:var(--mut)}
+.checks{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px 10px}
+.layer{display:grid;gap:4px;padding:6px 0;border-top:1px solid var(--line)}
+.layer:first-of-type{border-top:0}
+.layer label{font-weight:600}
+.plist{display:flex;flex-wrap:wrap;gap:4px;padding-left:20px}
+.plist button{padding:5px 7px;font-size:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:4px 8px 4px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+th{font:400 12px/1.3 var(--mono);color:var(--mut)}
+#zonestat{padding:9px 11px;background:var(--bg);border:1px solid var(--line)}
+#zonestat.over{background:var(--warn);border-color:var(--warn-line)}
+ul{margin:0;padding-left:17px;display:grid;gap:5px}
+.mode{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:5px}[hidden]{display:none!important}
+@media (max-width:820px){html,body{height:auto}.app{display:block;height:auto}.vp{height:44vh;min-height:280px}.panel{border-left:0;border-top:1px solid var(--line);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}.hint{display:none}}
+</style>
+
+<div class="app">
+  <div class="vp">
+    <canvas id="c" aria-label="3D model of the mixed materials probe. Drag to orbit, scroll to zoom, click a part to identify it."></canvas>
+    <p id="gl">This 3D view needs WebGL, which is turned off or unavailable in this browser.</p>
+    <div class="views" id="views"><button data-v="angle">Angle</button><button data-v="front">Front</button><button data-v="back">Bird side</button><button data-v="end">End on</button></div>
+    <div id="hover"></div>
+    <div class="hint" id="hint">Drag to orbit · Scroll to zoom · Click a part</div>
+  </div>
+  <aside class="panel">
+    <header style="display:grid;gap:5px">
+      <p class="mut" style="font:500 12.5px/1.3 var(--mono);letter-spacing:.04em">Constructor BIRD · Frame right</p>
+      <h1>Mixed materials</h1>
+      <p>A working model of one option for the right base frame, at real size. Turn the crank, play it by hand, switch materials on and off, and take it apart. Shapes are placeholders. Sizes and movement limits are real.</p>
+    </header>
+    <div id="card" aria-live="polite"></div>
+    <section>
+      <h2>Drive</h2>
+      <div class="mode"><button id="modeMotor" aria-pressed="true">Motor</button><button id="modePlay" aria-pressed="false">Play by hand</button></div>
+      <div id="motorbox" style="display:grid;gap:9px;min-width:0">
+      <div class="drive">
+        <svg id="dial" viewBox="-60 -60 120 120" role="slider" tabindex="0" aria-label="Crank. Drag or use arrow keys to turn it by hand." aria-valuemin="0" aria-valuemax="360" aria-valuenow="0"><circle class="ring" r="54"/><g id="dh"><line x1="0" y1="0" x2="0" y2="-38"/><circle class="knob" cy="-38" r="11"/></g><circle class="hubc" r="6"/></svg>
+        <div style="display:grid;gap:8px;min-width:0">
+          <button id="run">Stop motor</button>
+          <div><div class="rangehead"><label for="speed">Speed</label><span id="speedv">1×</span></div><input id="speed" type="range" min="0.25" max="2.5" step="0.25" value="1"></div>
+          <p class="mut" style="font-size:13.5px">One turn of the crank is one 8 second cycle.</p>
+        </div>
+      </div>
+      <div class="checks" id="motions"></div>
+      </div>
+      <div id="playbox" hidden style="display:grid;gap:9px;min-width:0">
+        <p>The motor is off. Move the mouse over any part: it moves and sounds for as long as you stay on it. Run along the ceramic plates to play them like a scale. Click to strike harder. Dragging still orbits.</p>
+        <div><div class="rangehead"><label for="vol">Volume</label><span id="volv">70%</span></div><input id="vol" type="range" min="0" max="1" step="0.05" value="0.7"></div>
+        <p class="mut" id="sndstat" style="font-size:13.5px">Sounds are made in the browser as a rough guide, not recordings of the real materials.</p>
+      </div>
+    </section>
+    <section>
+      <h2>Take it apart</h2>
+      <div class="rangehead"><label for="ex">Assembled</label><span>Taken apart</span></div>
+      <input id="ex" type="range" min="0" max="1" step="0.01" value="0">
+      <table><thead><tr><th>Piece</th><th>Size</th><th>Weight</th></tr></thead><tbody>
+        <tr><td>Left end</td><td>102 × 46 cm</td><td>14 kg</td></tr><tr><td>Centre</td><td>104 cm long</td><td>5 kg</td></tr><tr><td>Right end</td><td>102 × 46 cm</td><td>6 kg</td></tr>
+      </tbody></table>
+      <p class="mut" style="font-size:13.5px">Estimates, assuming a steel core with 2 mm walls. Brass pins join the core. Fronds clip off and roll up, the longest about 180 cm.</p>
+    </section>
+    <section>
+      <h2>Materials and parts</h2>
+      <div id="layers"></div>
+    </section>
+    <section>
+      <h2>Fronds and the zone</h2>
+      <label><input type="radio" name="fr" id="frin" checked> Inside the zone, past the right end</label>
+      <label><input type="radio" name="fr" id="frup"> Rising, as in the original sketch</label>
+      <label><input type="checkbox" id="zone"> Show the zone</label>
+      <p id="zonestat"></p>
+    </section>
+    <section>
+      <h2>Open questions</h2>
+      <ul>
+        <li>The drive reaches the plates and plants through the core. That route still needs designing.</li>
+        <li>The floor is assumed to be level with the frame’s feet, at y = −9, because the shared base file doesn’t show one.</li>
+        <li>Fixing natural stone and ceramic on the core needs a sample test.</li>
+      </ul>
+    </section>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const $=s=>document.querySelector(s),{sin,cos,PI,abs,atan2,hypot,min,max,tan}=Math,X0=-.195,W=2*PI/8;
+const INFO={
+ stones:{name:'Stone beads',layer:'stone',mat:'River stone, drilled',size:'Up to 4.8 cm deep and 8 cm long, with a 19 cm foot stone',moves:'Stays still.',joins:'Threaded on the steel core. Packs with the left end.',kg:'5 kg',f:[0,14,142,80]},
+ plates:{name:'Ceramic plates',layer:'ceramic',mat:'Glazed ceramic',size:'40 plates, 5.2 × 5.2 × 0.7 cm',moves:'Each tilts in turn on a spiral cam, so a ripple runs along the rail.',joins:'Pivot on the core. Stay threaded when packed.',kg:'1.7 kg',f:[0,30,104,70]},
+ form1:{name:'Ceramic form',layer:'ceramic',mat:'Glazed ceramic',size:'14 cm tall, 4.4 cm deep',moves:'Rocks about ±7° on a pin in the lower rail.',joins:'Lifts off its pin.',kg:'0.8 kg',f:[0,22,61,44]},
+ woodS:{name:'Wood sleeves',layer:'wood',mat:'Turned oak',size:'4.8 cm across, 189 cm in total',moves:'Stays still.',joins:'Slide over the core and split at its joints.',kg:'1.8 kg',f:[0,30,30,110]},
+ trestles:{name:'Trestles',layer:'wood',mat:'Oak',size:'Legs 2.2 × 4 cm, reaching the floor',moves:'Stays still.',joins:'Pin to the lower rail. They add two floor contacts near the heavy end.',kg:'0.6 kg',f:[0,4,52,80]},
+ form2:{name:'Wooden form',layer:'wood',mat:'Oak, two wedges',size:'13.4 cm tall, 4.2 cm deep',moves:'Rocks about ±7° on a pin in the lower rail.',joins:'Lifts off its pin.',kg:'0.2 kg',f:[0,22,37,44]},
+ hub:{name:'Metal sleeves and crank hub',layer:'metal',mat:'Brass and dark steel',size:'Hub 7.2 cm across, 4 cm deep',moves:'The hub turns with the drive.',joins:'Fixed on the left end of the core.',kg:'3 kg',f:[0,14,92,60]},
+ steelS:{name:'Lower rail sleeves',layer:'metal',mat:'Steel tube',size:'3 cm across, like the original rail',moves:'Stays still. It hides the drive shaft.',joins:'Split at the core joints.',kg:'1.5 kg',f:[0,12,-20,120]},
+ shaft:{name:'Drive shaft',layer:'metal',mat:'Brass',size:'0.9 cm across, inside the lower rail',moves:'Turns and drives every moving part.',joins:'Splits with the core. Hide the sleeves and core to see it.',kg:'included above',f:[0,14,-20,120]},
+ coil:{name:'Coil and weight',layer:'metal',mat:'Spring steel, brass weight',size:'4.6 cm across, about 18 cm long',moves:'Bounces about 7 cm, pulled by a cam.',joins:'Hooks under the lower rail.',kg:'0.4 kg',f:[0,4,46,46]},
+ form4:{name:'Brass form',layer:'metal',mat:'Bent brass tube',size:'13 cm tall, 14 cm wide',moves:'Rocks about ±7° on a pin in the lower rail.',joins:'Lifts off its pin.',kg:'0.3 kg',f:[0,22,-22,44]},
+ square:{name:'Square end frame',layer:'metal',mat:'Dark steel, 2.4 cm section',size:'45 cm tall, around the plants',moves:'Stays still.',joins:'Bolts to the right end of the core.',kg:'1.5 kg',f:[0,14,-140,80]},
+ form3:{name:'Stone form',layer:'stone',mat:'River stone',size:'14 cm tall, 4.8 cm deep',moves:'Rocks about ±7° on a pin in the lower rail.',joins:'Lifts off its pin.',kg:'0.8 kg',f:[0,22,14,44]},
+ plants:{name:'Plants',layer:'plants',mat:'Preserved or artificial fronds',size:'Up to about 180 cm long, kept in the front 2.2 cm of the depth',moves:'Sway as a bar in the rail shakes their roots.',joins:'Clip to the rails, come off and roll up.',kg:'0.5 kg',f:[0,14,-130,190]},
+ core:{name:'Steel core',layer:'core',mat:'Steel tube, 2 cm across',size:'720 cm in three pieces',moves:'Stays still and carries everything.',joins:'Brass pins join the pieces at z = ±52.',kg:'6.4 kg',f:[0,14,0,330]},
+ accents:{name:'Accent slots',layer:'links',mat:'Made by a partner in the project',size:'Two 5.5 cm cubes',moves:'Stay still.',joins:'They fill almost the full depth, so nothing passes through the centre.',kg:'not counted',f:[0,25,0,40]},
+ rod:{name:'Cross rod',layer:'links',mat:'Part of the neighbouring structure',size:'2.6 cm across',moves:'Stays still.',joins:'Ties this frame to the left frame. It needs a firm clamp on the core.',kg:'not counted',f:[-14,15,-102,70]},
+ sleeve:{name:'Sleeve',layer:'links',mat:'Part of the shared base file',size:'4.5 cm across, 25 cm long',moves:'Stays still.',joins:'Sits on the top rail at the centre.',kg:'not counted',f:[0,32,0,50]}};
+const LAYERS=[['stone','Stone'],['ceramic','Ceramic'],['wood','Wood'],['metal','Metal'],['plants','Plants'],['core','Steel core'],['links','Connections']];
+const MOTIONS=[['plates','Plates ripple'],['forms','Forms rock'],['coil','Coil bounces'],['plants','Plants sway']];
+const clock={drive:0,plates:0,forms:0,coil:0,plants:0},on={plates:true,forms:true,coil:true,plants:true};
+let T,R,S,cam,O,MAT,SPH,RG,cur,zoneM,running=!matchMedia('(prefers-reduced-motion: reduce)').matches,speed=1,ex=0,sel=null,fly=null,curView='angle',last=0,up=()=>{},mode='motor',motorAmp=1,setRunG=()=>{};
+const rig={beads:[],vib:{}};
+const parts={};Object.keys(INFO).forEach(k=>parts[k]={id:k,...INFO[k],groups:[],mats:new Set()});const layerOn={};LAYERS.forEach(l=>layerOn[l[0]]=true);
+const B=(w,h,l,mat,x=0,y=0,z=0,p=cur)=>{const o=new T.Mesh(new T.BoxGeometry(w,h,l),mat);o.position.set(x,y,z);p.add(o);return o};
+function Cyl(r,len,mat,ax,x,y,z,p=cur){const o=new T.Mesh(new T.CylinderGeometry(r,r,len,16),mat);if(ax=='x')o.rotation.z=PI/2;if(ax=='z')o.rotation.x=PI/2;o.position.set(x,y,z);p.add(o);return o}
+function E(dx,hy,hz,mat,x,y,z,rot=0,p=cur){const o=new T.Mesh(SPH,mat);o.scale.set(dx/2,hy,hz);o.position.set(x,y,z);o.rotation.x=rot;p.add(o);return o}
+function Bar(x,y1,z1,y2,z2,th,dep,mat,p=cur){const dy=y2-y1,dz=z2-z1,o=new T.Mesh(new T.BoxGeometry(dep,th,hypot(dy,dz)),mat);o.position.set(x,(y1+y2)/2,(z1+z2)/2);o.rotation.x=atan2(-dy,dz);p.add(o);return o}
+function Flat(pts,d,mat,x,y,z,p=cur){const s=new T.Shape();pts.forEach((q,i)=>i?s.lineTo(q[0],q[1]):s.moveTo(q[0],q[1]));s.closePath();const o=new T.Mesh(new T.ExtrudeGeometry(s,{depth:d,bevelEnabled:false}),mat);o.rotation.y=-PI/2;o.position.set(x+d/2,y,z);p.add(o);return o}
+function Tube(pts,r,mat,closed=false,x=0,seg=120,p=cur){const c=new T.CatmullRomCurve3(pts,closed,'centripetal');const o=new T.Mesh(new T.TubeGeometry(c,seg,r,10,closed),mat);o.position.x=x;p.add(o);return o}
+function rockGeo(seed){const g=new T.IcosahedronGeometry(1,1),p=g.attributes.position,h=(a,b,c)=>{const s=sin(a*12.9+b*78.2+c*37.7+seed)*43758.5;return s-Math.floor(s)};for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),k=.84+.28*h(Math.round(x*50),Math.round(y*50),Math.round(z*50));p.setXYZ(i,x*k,y*k,z*k)}g.computeVertexNormals();return g}
+function rock(x,y,z,dx,hy,hz,rot,mat,i){const o=new T.Mesh(RG[i%4],mat);o.scale.set(dx/2,hy,hz);o.position.set(x,y,z);o.rotation.x=rot;cur.add(o);return o}
+function part(id,e,fn){const g=new T.Group();g.userData.part=id;S.add(g);cur=g;parts[id].groups.push({g,e});fn(g);return g}
+function fronds(list,grp){const P=14,NV=list.length*P*2,pos=new Float32Array(NV*3),nor=new Float32Array(NV*3),col=new Float32Array(NV*3),idx=[],cl=new T.Color();
+ list.forEach((f,a)=>{const cv=new T.CatmullRomCurve3(f.pts.map(q=>new T.Vector3(0,q[0],q[1])));f.s=[];cl.setHex(f.col);for(let j=0;j<P;j++){const u=j/(P-1),p=cv.getPoint(u),t=cv.getTangent(u);f.s.push({y:p.y,z:p.z,ny:-t.z,nz:t.y,w:f.w*(j<2?.75:1-.9*u)});const b=(a*P+j)*2;for(const v of[b,b+1]){nor[v*3]=1;col[v*3]=cl.r;col[v*3+1]=cl.g;col[v*3+2]=cl.b}if(j<P-1)idx.push(b,b+1,b+2,b+1,b+3,b+2)}});
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pos,3));g.setAttribute('normal',new T.BufferAttribute(nor,3));g.setAttribute('color',new T.BufferAttribute(col,3));g.setIndex(idx);const m=new T.Mesh(g,new T.MeshStandardMaterial({vertexColors:true,side:T.DoubleSide,roughness:.7}));m.frustumCulled=false;m.castShadow=true;grp.add(m);
+ const up=tc=>{list.forEach((f,a)=>f.s.forEach((q,j)=>{const u=j/(P-1),dz=f.A*f.e*u**1.5*sin(f.k*W*tc+f.ph-2.2*u),b=(a*P+j)*6;pos[b]=f.x;pos[b+1]=q.y+q.ny*q.w/2;pos[b+2]=q.z+dz+q.nz*q.w/2;pos[b+3]=f.x;pos[b+4]=q.y-q.ny*q.w/2;pos[b+5]=q.z+dz-q.nz*q.w/2}));g.attributes.position.needsUpdate=true;if(!g.boundingSphere)g.computeBoundingSphere()};up(0);return{m,up,list}}
+
+function build(){const M=MAT,LFT=[0,0,60],CEN=[0,0,0],RGT=[0,0,-60],plus=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+ const endPts=s=>[[15,52],[15,90],[15,127],[13.5,131],[11,132.5],[-5,140],[-7.5,143],[-7.5,149],[-4,152.7],[21,152.7],[28,151],[32.8,146],[34.6,139],[34.6,95],[34.6,52]].map(q=>new T.Vector3(0,q[0],s*q[1]));
+ part('core',LFT,()=>Tube(endPts(1),1,M.steel,false,X0,200));
+ part('core',CEN,()=>{[34.6,15].forEach(y=>{Cyl(1,104,M.steel,'z',X0,y,0);[-1,1].forEach(s=>Cyl(.62,10,M.brass,'z',X0,y,s*56))})});
+ part('core',RGT,()=>Tube(endPts(-1),1,M.steel,false,X0,200));
+ part('stones',plus(LFT,[20,0,0]),()=>{const c=new T.CatmullRomCurve3(endPts(1),false,'centripetal');c.arcLengthDivisions=1200;const L=c.getLength();for(let s=61,i=0;s<L;s+=7.3,i++){const u=s/L,p=c.getPointAt(u),q=c.getTangentAt(u);if(p.y>34&&p.z<131)break;const rot=atan2(-q.y,q.z),mb=rock(X0,p.y,p.z,4.8,2.5+(i%3)*.25,3.7+(i%2)*.5,rot,i%2?M.stone:M.stoneD,i);mb.userData.i=rig.beads.length;rig.beads.push({m:mb,rot,th:0,om:0})}rig.foot={m:rock(X0,-4.5,146,4.8,4.1,9.5,0,M.stoneD,2),th:0,om:0};rig.foot.m.userData.foot=1});
+ const tn=40,cl=new T.Color(),d=new T.Object3D();let tiles;
+ part('plates',plus(LFT,[28,0,0]),g=>{tiles=new T.InstancedMesh(new T.BoxGeometry(5.2,5.2,.7),new T.MeshStandardMaterial({color:0xffffff,roughness:.22}),tn);tiles.frustumCulled=false;[0xe6e0d0,0xa9c9b4,0xc98f5a,0xe6e0d0].forEach(()=>0);for(let i=0;i<tn;i++){cl.setHex([0xe6e0d0,0xa9c9b4,0xc98f5a,0xdcd5c2][i%4]);tiles.setColorAt(i,cl)}g.add(tiles)});
+ let hub;part('hub',plus(LFT,[12,0,0]),()=>{[108,95].forEach((z,i)=>Cyl(1.9,11,i?M.dark:M.brass,'z',X0,15,z));hub=new T.Group();hub.position.set(X0,15,79);cur.add(hub);Cyl(3.6,4,M.brass,'x',0,0,0,hub);B(4.5,.9,6.6,M.dark,0,0,0,hub);Cyl(.55,5.2,M.steel,'x',0,2.6,0,hub)});
+ part('steelS',plus(LFT,[8,0,0]),()=>Cyl(1.5,20,M.steel,'z',X0,15,62));part('steelS',plus(CEN,[8,0,0]),()=>Cyl(1.5,104,M.steel,'z',X0,15,0));part('steelS',plus(RGT,[8,0,0]),()=>Cyl(1.5,75,M.steel,'z',X0,15,-89.5));
+ part('shaft',LFT,()=>Cyl(.45,27,M.brass,'z',X0,15,65.5));part('shaft',CEN,()=>Cyl(.45,104,M.brass,'z',X0,15,0));part('shaft',RGT,()=>Cyl(.45,75,M.brass,'z',X0,15,-89.5));
+ part('woodS',plus(LFT,[12,6,0]),()=>Cyl(2.4,24,M.wood,'z',X0,34.6,64));part('woodS',plus(CEN,[12,6,0]),()=>{Cyl(2.4,39,M.wood,'z',X0,34.6,32.5);Cyl(2.4,39,M.wood,'z',X0,34.6,-32.5)});part('woodS',plus(RGT,[12,6,0]),()=>Cyl(2.4,87,M.wood,'z',X0,34.6,-95.5));
+ part('trestles',plus(LFT,[14,0,0]),()=>[-1,1].forEach(s=>Bar(X0,13.5,79,-9,79+s*11,2.2,4,M.wood)));part('trestles',plus(CEN,[14,0,0]),()=>[-1,1].forEach(s=>Bar(X0,13.5,20,-9,20+s*7,2.2,4,M.wood)));
+ let coil,ball;part('coil',plus(CEN,[24,0,0]),()=>{coil=new T.Group();coil.position.set(0,13.4,46);cur.add(coil);const hp=[];for(let i=0;i<=66;i++){const a=i/66*12*PI;hp.push(new T.Vector3(X0+2.3*cos(a),-18*i/66,2.3*sin(a)))}Tube(hp,.28,M.steel,false,0,260,coil);ball=E(3.4,1.6,1.6,M.brass,X0,0,46)});
+ const fg=(id,e,z,ph,mk)=>{let g;part(id,e,()=>{g=new T.Group();g.position.set(X0,16.6,z);cur.add(g);mk(g)});return{g,ph}};
+ const forms=[fg('form1',plus(LFT,[24,0,0]),61,0,g=>{E(4.4,4,5.5,M.ceramic,0,4,0,0,g);E(4.4,3.4,4.6,M.ceramic,0,10.4,0,0,g)}),
+  fg('form2',plus(CEN,[24,0,0]),37,1.4,g=>{Flat([[-7,0],[-1,13.4],[2,13.4],[-3,0]],4.2,M.wood,0,0,0,g);Flat([[1,0],[5.5,9.5],[7.5,8.5],[4,0]],4.2,M.woodD,0,0,0,g)}),
+  fg('form3',plus(CEN,[24,0,0]),14,2.8,g=>{const r=rock(0,6.8,0,4.8,6.4,4.6,0,M.stone,1);g.add(r)}),
+  fg('form4',plus(CEN,[24,0,0]),-22,4.2,g=>Tube([[-7,.6],[-7,13],[-1,13],[5,10.5],[7,6.5],[5,2.6],[-1,.6]].map(q=>new T.Vector3(0,q[1],q[0])),.75,M.brass,true,0,70,g))];
+ part('square',plus(RGT,[-16,0,0]),()=>{Bar(-1.2,-9,-153.5,36,-153.5,2.4,2.4,M.dark);Bar(-1.2,36,-153.5,36,-118,2.4,2.4,M.dark);Bar(-1.2,-7.8,-153.5,-7.8,-134,2.4,2.4,M.dark)});
+ let sd=7;const rnd=()=>{sd=sd*16807%2147483647;return sd/2147483647},GC=[0x5f9a45,0x7aa84f,0xb59a5a,0x4d7f3a,0x9a6a38],mk=(pts,w,A)=>({pts,w,A,e:1,ph:rnd()*6.28,x:.65+rnd()*2.05,col:GC[Math.floor(rnd()*5)],k:rnd()<.5?1:2});
+ const arch=[],side=[],rise=[];[-56,-80,-104,-128].forEach(z0=>{for(let i=0;i<10;i++){const s=i%2?1:-1,sp=7+rnd()*11;arch.push(mk([[34+rnd(),z0+rnd()*5],[27,z0+s*2],[14,z0+s*sp*.35],[1,z0+s*sp*.8],[-7.6+rnd()*3,z0+s*sp*1.7]],1.5+rnd()*.9,3))}for(let i=0;i<5;i++){const top=62+rnd()*16;rise.push(mk([[34.6,z0+rnd()*8],[46,z0+4-rnd()*6],[56,z0-3-rnd()*6],[top-5,z0-14-rnd()*8],[top,z0-30-rnd()*14]],1.5+rnd()*.9,3.4))}});
+ for(let i=0;i<24;i++){const z0=-48-rnd()*92,ze=-178-rnd()*48,t=i%2==0,y0=t?34.6:15,tip=30+rnd()*6.8;side.push(mk([[y0,z0],[t?35.8:20,z0*.66+ze*.34],[t?36.6:26+rnd()*5,z0*.33+ze*.67],[tip,ze]],1.4+rnd()*.9,2.6))}
+ let fa,fs,fr;part('plants',plus(RGT,[26,4,0]),g=>{fa=fronds(arch,g);fs=fronds(side,g);fr=fronds(rise,g);fr.m.visible=false});
+ part('accents',CEN,()=>{[30.29,20.29].forEach(y=>B(5.5,5.5,5.5,M.accent,X0,y,.55))});part('rod',CEN,()=>Cyl(1.3,79.18,M.rod,'x',-40.41,15.01,-102.49));part('sleeve',CEN,()=>Cyl(2.25,25,M.steel,'z',X0,34.6,0));
+ // Give each part its own materials so one can stay solid while the others fade.
+ Object.values(parts).forEach(p=>{const map=new Map();p.groups.forEach(({g})=>g.traverse(o=>{if(!o.isMesh)return;o.castShadow=true;if(!map.has(o.material))map.set(o.material,o.material.clone());o.material=map.get(o.material);p.mats.add(o.material)}))});
+ parts.plants.fm={fa,fs,fr};
+ Object.assign(rig,{tiles,hub,coil,ball,forms,fa,fs,fr,th:new Float32Array(tn),om:new Float32Array(tn),tn,coilS:0,coilV:0,hubA:0,hubO:0,hubT:0});forms.forEach(f=>{f.th=0;f.om=0});['woodS','steelS','trestles','square','core','hub'].forEach(k=>rig.vib[k]={y:0,v:0});
+ up=()=>{const dd=new T.Object3D();for(let i=0;i<tn;i++){dd.position.set(X0,34.6,130-i*1.33);dd.rotation.set(motorAmp*.28*sin(2*W*clock.plates-i*.38)+rig.th[i],0,0);dd.updateMatrix();tiles.setMatrixAt(i,dd.matrix)}tiles.instanceMatrix.needsUpdate=true;
+  hub.rotation.x=W*clock.drive+rig.hubA;forms.forEach(f=>f.g.rotation.x=motorAmp*.12*sin(W*clock.forms+f.ph)+f.th);rig.beads.forEach(b=>b.m.rotation.x=b.rot+b.th);rig.foot.m.rotation.x=rig.foot.th;for(const k in rig.vib){const v=rig.vib[k];if(abs(v.y)>1e-4||v.was){parts[k].groups.forEach(({g,e})=>g.position.y=e[1]*ex+v.y);v.was=abs(v.y)>1e-4}}
+  const sc=.92+motorAmp*.2*sin(2*W*clock.coil)+rig.coilS;coil.scale.y=sc;ball.position.y=13.4-18*sc;
+  fa.up(clock.plants);if(fs.m.visible)fs.up(clock.plants);if(fr.m.visible)fr.up(clock.plants);
+  $('#dh').setAttribute('transform',`rotate(${(clock.drive/8*360)%360})`)}}
+
+function applyParts(){Object.values(parts).forEach(p=>p.groups.forEach(({g,e})=>{g.position.set(e[0]*ex,e[1]*ex,e[2]*ex);g.visible=layerOn[p.layer]}))}
+function focusLook(){Object.values(parts).forEach(p=>{const fade=sel&&p.id!==sel;p.mats.forEach(m=>{if(m.transparent!==!!fade||m.opacity!==(fade?.16:1)){m.transparent=!!fade;m.opacity=fade?.16:1;m.depthWrite=!fade;m.needsUpdate=true}})})}
+function showCard(){const c=$('#card');document.querySelectorAll('.plist button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.p===sel));if(!sel){c.innerHTML='<h3>Pick a part</h3><p class="mut">'+(mode==='play'?'Click a part name under Materials and parts to see what it is and how it moves.':'Click anything on the model, or a part name under Materials and parts, to see what it is and how it moves.')+'</p>';return}const p=parts[sel];c.innerHTML=`<h3>${p.name}</h3><dl><dt>Material</dt><dd>${p.mat}</dd><dt>Size</dt><dd>${p.size}</dd><dt>Moves</dt><dd>${p.moves}</dd><dt>Joins</dt><dd>${p.joins}</dd><dt>Weight</dt><dd>${p.kg}</dd></dl><div class="cardbtns"><button id="zoomp">Zoom to it</button><button id="clearp">Clear</button></div>`;$('#zoomp').onclick=()=>zoomTo(p);$('#clearp').onclick=()=>select(null)}
+function select(id){sel=id;if(T)focusLook();showCard()}
+function fitD(wd,ht,f,asp){return max((wd/2)/(tan(f*PI/360)*asp),(ht/2)/tan(f*PI/360))}
+function go(pos,tg,f,instant){if(instant||matchMedia('(prefers-reduced-motion: reduce)').matches){cam.position.copy(pos);O.target.copy(tg);cam.fov=f;cam.updateProjectionMatrix();O.update();cam.updateMatrixWorld();fly=null;return}fly={t:0,p0:cam.position.clone(),p1:pos,t0:O.target.clone(),t1:tg,f0:cam.fov,f1:f}}
+function view(k,instant){curView=k;document.querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v==k));const a=cam.aspect,V=(x,y,z)=>new T.Vector3(x,y,z);let f=26,dir,tg=V(0,12,22),d;
+ const wd=330+ex*180;if(k=='angle'){dir=V(.62,.22,.58);d=fitD(wd,110,f,a)}if(k=='front'){f=9;dir=V(1,.015,0);tg=V(0,14,0);d=fitD(490+ex*150,70,f,a)}if(k=='back'){f=9;dir=V(-1,.015,0);tg=V(0,14,0);d=fitD(490+ex*150,70,f,a)}if(k=='end'){f=6;dir=V(.03,.05,1);tg=V(ex*10,14,0);d=fitD(30+ex*60,70,f,a)+500}
+ dir.normalize();go(tg.clone().addScaledVector(dir,d),tg,f,instant)}
+function zoomTo(p){curView='';document.querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',false));const[x,y,z,w]=p.f,e=p.groups[0].e,V=new T.Vector3(x+e[0]*ex,y+e[1]*ex,z+e[2]*ex),dir=new T.Vector3(.72,.22,.62).normalize();go(V.clone().addScaledVector(dir,fitD(w,w*.55,26,cam.aspect)),V,26)}
+function size(){const c=$('#c'),w=c.clientWidth,h=c.clientHeight;if(!w||!h)return;const asp=w/h,ch=!R.__w||abs(R.__w-w)>1||abs(asp/R.__a-1)>.2;R.__w=w;if(ch)R.__a=asp;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix();if(ch&&curView)view(curView,true)}
+function advance(dt){clock.drive+=dt;for(const k in on)if(on[k])clock[k]+=dt}
+function loop(now){requestAnimationFrame(loop);const dt=min((now-last)/1000,.1);last=now;if(running)advance(dt*speed);stepPlay(dt);up();
+ if(fly){fly.t=min(1,fly.t+dt/.7);const k=fly.t*fly.t*(3-2*fly.t);cam.position.lerpVectors(fly.p0,fly.p1,k);O.target.lerpVectors(fly.t0,fly.t1,k);cam.fov=fly.f0+(fly.f1-fly.f0)*k;cam.updateProjectionMatrix();if(fly.t>=1)fly=null}
+ O.update();R.render(S,cam)}
+const ray=()=>new T.Raycaster();
+function hitAt(cx,cy){const r=$('#c').getBoundingClientRect(),rc=ray();rc.setFromCamera(new T.Vector2((cx-r.left)/r.width*2-1,-(cy-r.top)/r.height*2+1),cam);const list=[];Object.values(parts).forEach(p=>p.groups.forEach(({g})=>{if(g.visible)list.push(g)}));for(const h of rc.intersectObjects(list,true)){let o=h.object,vis=true,id=null;while(o){if(!o.visible)vis=false;if(o.userData&&o.userData.part)id=o.userData.part;o=o.parent}if(vis&&id)return{id,h}}return null}
+function pickAt(cx,cy){const a=hitAt(cx,cy);return a?a.id:null}
+
+/* Play by hand: springs for what moves, a small synth for what sounds. */
+const AU={ctx:null,vol:.7,voices:0,fail:false},AU_count={},P={on:false,x:0,y:0,down:false,v:0,lx:0,ly:0,lt:0,poll:0,lastI:null,lastKey:''},CD={},PENT=[0,3,5,7,10];
+const okCD=(k,s)=>{const n=performance.now()/1000;if(n-(CD[k]||0)<s)return false;CD[k]=n;return true};
+function AU_use(c){AU.ctx=c;const sr=c.sampleRate,n=sr*2,nb=c.createBuffer(1,n,sr),d=nb.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;AU.noise=nb;
+ const master=c.createGain(),comp=c.createDynamicsCompressor(),bus=c.createGain(),wet=c.createGain(),conv=c.createConvolver(),L=Math.floor(sr*1.1),ir=c.createBuffer(2,L,sr);master.gain.value=AU.vol;bus.gain.value=.8;wet.gain.value=.22;
+ for(let ch=0;ch<2;ch++){const a=ir.getChannelData(ch);for(let i=0;i<L;i++)a[i]=(Math.random()*2-1)*(1-i/L)**3}conv.buffer=ir;bus.connect(comp);bus.connect(conv);conv.connect(wet);wet.connect(comp);comp.connect(master);master.connect(c.destination);AU.bus=bus;AU.master=master;
+ const src=c.createBufferSource(),bp=c.createBiquadFilter(),g=c.createGain();src.buffer=nb;src.loop=true;bp.type='bandpass';bp.frequency.value=5200;bp.Q.value=.6;g.gain.value=0;src.connect(bp);bp.connect(g);g.connect(bus);src.start();AU.rg=g;AU.voices=0}
+function initAudio(){try{if(!AU.ctx){const C=window.AudioContext||window.webkitAudioContext;AU_use(new C())}if(AU.ctx.resume)AU.ctx.resume()}catch(e){AU.fail=true;$('#sndstat').textContent='Sound isn’t available in this browser, but the parts still move.'}}
+function modal(f,ps,g){const c=AU.ctx;if(!c||AU.voices>64)return;const t=c.currentTime;ps.forEach(([r,a,d])=>{const o=c.createOscillator(),v=c.createGain();o.frequency.value=f*r;v.gain.setValueAtTime(.0001,t);v.gain.linearRampToValueAtTime(max(.0002,a*g),t+.003);v.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(v);v.connect(AU.bus);o.start(t);o.stop(t+d+.03);AU.voices++;o.onended=()=>{AU.voices--;o.disconnect();v.disconnect()}})}
+function noiseHit(fc,q,d,g){const c=AU.ctx;if(!c)return;const t=c.currentTime,s=c.createBufferSource(),b=c.createBiquadFilter(),v=c.createGain();s.buffer=AU.noise;s.loop=true;b.type='bandpass';b.frequency.value=fc;b.Q.value=q;v.gain.setValueAtTime(max(.0002,g),t);v.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(b);b.connect(v);v.connect(AU.bus);s.start(t,Math.random()*1.5);s.stop(t+d+.03);s.onended=()=>{s.disconnect();b.disconnect();v.disconnect()}}
+const pent=(base,n)=>base*2**(PENT[n%5]/12+Math.floor(n/5));
+const SOUND_RAW={
+ plate:(i,g)=>{const n=Math.floor((39-i)*13/40);modal(pent(660,n),[[1,1,.42],[2.76,.42,.2],[5.4,.16,.1]],.55*g);noiseHit(5200,2,.016,.3*g)},
+ form1:g=>{modal(430,[[1,1,.3],[2.3,.42,.14],[4.1,.16,.07]],.65*g);noiseHit(2600,2,.02,.2*g)},
+ form2:g=>{modal(520,[[1,1,.1],[3.9,.3,.035]],.8*g);noiseHit(1800,1.5,.025,.4*g)},
+ form3:g=>{modal(118,[[1,1,.14],[2.7,.3,.05]],.95*g);noiseHit(1000,1,.06,.6*g)},
+ form4:g=>modal(660,[[1,1,1.5],[2.01,.5,.95],[2.76,.32,.6],[5.4,.13,.3]],.3*g),
+ stone:(i,g)=>{noiseHit(2100+(i%6)*220,6,.04,1.6*g);modal(1250+(i%5)*130,[[1,.5,.035],[1.7,.3,.02]],.9*g)},
+ foot:g=>{modal(82,[[1,1,.2],[2.2,.25,.07]],.9*g);noiseHit(700,1,.08,.6*g)},
+ wood:(n,g)=>modal(pent(174.6,n),[[1,1,.34],[4,.24,.09]],.68*g),
+ tube:(n,g)=>modal(pent(349.2,n),[[1,1,.9],[2.76,.36,.45],[5.4,.16,.2]],.28*g),
+ knock:g=>{modal(168,[[1,1,.11],[2.4,.32,.05]],.45*g);noiseHit(600,1.2,.05,.2*g)},
+ gong:g=>modal(95,[[1,1,1.7],[1.48,.6,1.15],[2.31,.4,.7],[3.9,.18,.4]],.3*g),
+ hum:g=>modal(141,[[1,1,1.1],[2.01,.3,.6]],.26*g),
+ tick:g=>noiseHit(3100,8,.014,1.2*g),
+ spring:g=>modal(1820,[[1,1,.06],[2.7,.3,.03]],.22*g),
+ coil:g=>{const c=AU.ctx,t=c.currentTime,o=c.createOscillator(),v=c.createGain(),l=c.createOscillator(),ld=c.createGain();o.type='triangle';o.frequency.setValueAtTime(760,t);o.frequency.exponentialRampToValueAtTime(170,t+.44);l.frequency.value=28;ld.gain.value=46;l.connect(ld);ld.connect(o.frequency);v.gain.setValueAtTime(.0002,t);v.gain.linearRampToValueAtTime(.47*g,t+.006);v.gain.exponentialRampToValueAtTime(.0001,t+.6);o.connect(v);v.connect(AU.bus);o.start(t);l.start(t);o.stop(t+.62);l.stop(t+.62)}};
+const SOUND={};Object.keys(SOUND_RAW).forEach(k=>SOUND[k]=(...a)=>{AU_count[k]=(AU_count[k]||0)+1;if(AU.ctx)SOUND_RAW[k](...a)});
+function vibe(k,str){const v=rig.vib[k];if(v)v.v+=(Math.random()<.5?-1:1)*7*str}
+function playHit(a,str,force){const id=a.id,h=a.h,ob=h.object;let gp=ob;while(gp&&!(gp.userData&&gp.userData.part))gp=gp.parent;const lz=h.point.z-(gp?gp.position.z:0),keyed=(k,hold)=>{if(force||k!==P.lastKey){if(!okCD('kmin',.06))return false;P.lastKey=k;CD['h'+id]=performance.now()/1000;return true}return okCD('h'+id,hold)};
+ if(id!=='plates')P.lastI=null;
+ if(id==='plates'){const i=h.instanceId;if(i==null)return;const from=P.lastI==null||force?i:P.lastI,dir=i>=from?1:-1;for(let j=from;;j+=dir){if(okCD('p'+j,j===from&&i===from&&!force?.32:.07)){rig.om[j]+=(dir||1)*3.4*str*(j===i&&i===from?(j%2?1:-1):1);SOUND.plate(j,min(1.2,.8*str))}if(j===i)break}P.lastI=i;return}
+ if(id.startsWith('form')){const f=rig.forms[+id.slice(4)-1];if(okCD(id,force?0:.46)){f.om+=(f.om>=0?1:-1)*1.9*str;SOUND[id](min(1.3,.85*str))}return}
+ if(id==='coil'){if(okCD(id,force?0:.55)){rig.coilV-=1.6*str;SOUND.coil(min(1.2,.85*str))}return}
+ if(id==='stones'){if(ob.userData.foot){if(okCD('foot',force?0:.5)){rig.foot.om+=.9*str;SOUND.foot(min(1.2,str))}}else{const i=ob.userData.i;if(i!=null&&okCD('b'+i,force?0:.22)){rig.beads[i].om+=(i%2?1:-1)*5*str;SOUND.stone(i,min(1.2,.85*str))}}return}
+ if(id==='plants'){[rig.fa,rig.fs,rig.fr].forEach(s=>s.list.forEach(f=>{if(abs(f.s[7].z-lz)<22)f.e=min(1.7,f.e+.12*str)}));return}
+ if(id==='woodS'){const n=max(0,Math.floor((lz+139)/19));if(keyed('w'+n,.42)){vibe(id,str);SOUND.wood(n,min(1.2,.9*str))}return}
+ if(id==='steelS'){const n=max(0,Math.floor((lz+127)/24));if(keyed('s'+n,.5)){vibe(id,str);SOUND.tube(n,min(1.2,.9*str))}return}
+ if(id==='hub'||id==='shaft'){let o=ob,inHub=id==='shaft';while(o){if(o===rig.hub)inHub=true;o=o.parent}if(inHub){if(okCD('hubk',force?0:.2)){rig.hubO=min(16,rig.hubO+2.4*str);SOUND.tick(.6)}}else if(keyed('t'+Math.floor(lz/13),.5)){vibe('hub',str);SOUND.tube(Math.floor(lz/13)%6+2,min(1.2,.9*str))}return}
+ if(id==='trestles'){if(okCD(id,force?0:.55)){vibe(id,str);SOUND.knock(min(1.2,str))}return}
+ if(id==='square'){if(okCD(id,force?0:.95)){vibe(id,str);SOUND.gong(min(1.2,str))}return}
+ if(id==='core'){if(okCD(id,force?0:.7)){vibe(id,str);SOUND.hum(min(1.2,str))}return}}
+function stepPlay(dt){if(!rig.tiles)return;const pl=mode==='play';motorAmp+=((pl?0:1)-motorAmp)*min(1,dt*3);if(pl)clock.plants+=dt;
+ let sum=0,cnt=0;[rig.fa,rig.fs,rig.fr].forEach(s=>s.list.forEach(f=>{f.e=pl?max(0,f.e-dt*.5):f.e+(1-f.e)*min(1,dt*2);if(s.m.visible){sum+=f.e;cnt++}}));
+ if(AU.rg&&AU.ctx.currentTime!=null){AU.rg.gain.setTargetAtTime(pl?min(.2,sum/max(1,cnt)*.9):0,AU.ctx.currentTime,.09)}
+ if(pl&&P.on&&!P.down){P.poll+=dt;if(P.poll>=.04){P.poll=0;const a=hitAt(P.x,P.y);$('#hover').textContent=a?parts[a.id].name:'';$('#c').style.cursor=a?'pointer':'';if(a)playHit(a,max(.7,min(1.4,.7+P.v/1800)),false);else{P.lastI=null;P.lastKey=''}}P.v*=.9}
+ const n=2,h=min(dt,.05)/n,th=rig.th,om=rig.om,tn=rig.tn,B2=rig.beads;
+ for(let s=0;s<n;s++){
+  for(let i=0;i<tn;i++){const l=i?th[i-1]:th[i],r=i<tn-1?th[i+1]:th[i];om[i]+=(-120*th[i]-2.2*om[i]+90*(l+r-2*th[i]))*h}for(let i=0;i<tn;i++){th[i]+=om[i]*h;if(abs(th[i])>.32){th[i]=.32*Math.sign(th[i]);om[i]*=-.3}}
+  rig.forms.forEach((f,i)=>{const pr=f.om;f.om+=(-30*f.th-.55*f.om)*h;f.th+=f.om*h;if(abs(f.th)>.2){f.th=.2*Math.sign(f.th);f.om*=-.4}if(pr*f.om<0&&abs(f.th)>.035&&okCD('fp'+i,.2))SOUND['form'+(i+1)](min(.7,abs(f.th)*3))});
+  {const pr=rig.coilV;rig.coilV+=(-70*rig.coilS-.8*rig.coilV)*h;rig.coilS+=rig.coilV*h;if(abs(rig.coilS)>.2){rig.coilS=.2*Math.sign(rig.coilS);rig.coilV*=-.4}if(pr*rig.coilV<0&&abs(rig.coilS)>.03&&okCD('cp',.18))SOUND.spring(min(1,abs(rig.coilS)*5))}
+  B2.forEach((b,i)=>{const l=i?B2[i-1].th:b.th,r=i<B2.length-1?B2[i+1].th:b.th;b.om+=(-90*b.th-3.2*b.om+40*(l+r-2*b.th))*h});B2.forEach(b=>{b.th+=b.om*h;if(abs(b.th)>.3){b.th=.3*Math.sign(b.th);b.om*=-.3}});
+  {const f=rig.foot;f.om+=(-220*f.th-9*f.om)*h;f.th+=f.om*h;if(abs(f.th)>.07){f.th=.07*Math.sign(f.th);f.om*=-.3}}
+  for(const k in rig.vib){const v=rig.vib[k];v.v+=(-1100*v.y-16*v.v)*h;v.y+=v.v*h;if(abs(v.y)>.22){v.y=.22*Math.sign(v.y);v.v*=-.4}}
+  rig.hubO*=Math.exp(-.9*h);rig.hubA+=rig.hubO*h;rig.hubT+=abs(rig.hubO)*h;if(rig.hubT>PI/6){rig.hubT=0;if(abs(rig.hubO)>.4)SOUND.tick(min(1,abs(rig.hubO)/9))}}
+ let bud=2;for(let i=0;i<tn-1&&bud;i++){const dd=abs(th[i]-th[i+1]);if(dd>.1&&okCD('c'+i,.16)){SOUND.plate(i,min(.42,dd*1.6));bud--}}
+ bud=1;for(let i=0;i<B2.length-1&&bud;i++){if(abs(B2[i].th-B2[i+1].th)>.18&&okCD('bc'+i,.2)){SOUND.stone(i,.38);bud--}}}
+function setMode(m){mode=m;const pl=m==='play';$('#modeMotor').setAttribute('aria-pressed',!pl);$('#modePlay').setAttribute('aria-pressed',pl);$('#motorbox').hidden=pl;$('#playbox').hidden=!pl;$('#hint').textContent=pl?'Move over a part to play it · Click to strike · Drag to orbit':'Drag to orbit · Scroll to zoom · Click a part';if(T)O.enabled=true;P.lastI=null;P.lastKey='';if(pl){select(null);setRunG(false);initAudio()}else{$('#hover').textContent='';setRunG(!matchMedia('(prefers-reduced-motion: reduce)').matches);showCard()}}
+
+
+function ui(){
+ $('#motions').innerHTML=MOTIONS.map(m=>`<label><input type="checkbox" id="m_${m[0]}" checked> ${m[1]}</label>`).join('');
+ $('#layers').innerHTML=LAYERS.map(l=>`<div class="layer"><label><input type="checkbox" id="l_${l[0]}" checked> ${l[1]}</label><div class="plist">${Object.values(parts).filter(p=>p.layer==l[0]).map(p=>`<button data-p="${p.id}">${p.name}</button>`).join('')}</div></div>`).join('');
+ MOTIONS.forEach(m=>$('#m_'+m[0]).addEventListener('change',e=>on[m[0]]=e.target.checked));
+ LAYERS.forEach(l=>$('#l_'+l[0]).addEventListener('change',e=>{layerOn[l[0]]=e.target.checked;if(T)applyParts()}));
+ $('#layers').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;select(sel===b.dataset.p?null:b.dataset.p)});
+ const runBtn=$('#run'),setRun=v=>{running=v;runBtn.textContent=v?'Stop motor':'Run motor'};setRunG=setRun;setRun(running);runBtn.onclick=()=>setRun(!running);
+ $('#modeMotor').onclick=()=>setMode('motor');$('#modePlay').onclick=()=>setMode('play');
+ $('#vol').addEventListener('input',e=>{AU.vol=+e.target.value;$('#volv').textContent=Math.round(AU.vol*100)+'%';if(AU.master)AU.master.gain.value=AU.vol});
+ $('#speed').addEventListener('input',e=>{speed=+e.target.value;$('#speedv').textContent=speed+'×'});
+ $('#ex').addEventListener('input',e=>{ex=+e.target.value;if(T){applyParts();if(curView)view(curView,true)}});
+ const dial=$('#dial');let lastA=null;const ang=e=>{const r=dial.getBoundingClientRect();return atan2(e.clientX-r.left-r.width/2,-(e.clientY-r.top-r.height/2))};
+ const turn=da=>{advance(da/(2*PI)*8);dial.setAttribute('aria-valuenow',Math.round(((clock.drive/8*360)%360+360)%360))};
+ dial.addEventListener('pointerdown',e=>{try{dial.setPointerCapture(e.pointerId)}catch(_){}lastA=ang(e);setRun(false);e.preventDefault()});
+ dial.addEventListener('pointermove',e=>{if(lastA===null)return;const a=ang(e);let da=a-lastA;if(da>PI)da-=2*PI;if(da<-PI)da+=2*PI;lastA=a;turn(da)});
+ ['pointerup','pointercancel'].forEach(n=>dial.addEventListener(n,()=>lastA=null));
+ dial.addEventListener('keydown',e=>{const s={ArrowRight:1,ArrowUp:1,ArrowLeft:-1,ArrowDown:-1}[e.key];if(s){setRun(false);turn(s*PI/12);e.preventDefault()}});
+ const stat=$('#zonestat'),setFr=()=>{const upw=$('#frup').checked;if(T){const f=parts.plants.fm;f.fs.m.visible=!upw;f.fr.m.visible=upw;if(upw){$('#zone').checked=true;zoneM.visible=true}}stat.className=upw?'over':'';stat.textContent=upw?'These fronds rise about 40 cm above the zone, so they need the organisers’ agreement.':'Everything stays inside the zone. The fronds run up to 77 cm past the end of the frame.'};
+ $('#frin').addEventListener('change',setFr);$('#frup').addEventListener('change',setFr);setFr();
+ $('#zone').addEventListener('change',e=>{if(T)zoneM.visible=e.target.checked});
+ $('#views').addEventListener('click',e=>{const b=e.target.closest('button');if(b&&T)view(b.dataset.v)});
+ showCard();
+}
+ui();
+try{
+ if(!window.THREE)throw new Error('three.js did not load');T=THREE;
+ R=new T.WebGLRenderer({canvas:$('#c'),antialias:true});R.setPixelRatio(min(devicePixelRatio,2));R.shadowMap.enabled=true;R.shadowMap.type=T.PCFSoftShadowMap;
+ S=new T.Scene();S.background=new T.Color(0xffffff);cam=new T.PerspectiveCamera(26,2,5,8000);O=new T.OrbitControls(cam,$('#c'));O.enableDamping=true;O.dampingFactor=.12;O.addEventListener('start',()=>{fly=null;curView='';document.querySelectorAll('[data-v]').forEach(b=>b.setAttribute('aria-pressed',false))});
+ S.add(new T.HemisphereLight(0xffffff,0x77726a,.72));const L1=new T.DirectionalLight(0xffffff,.7);L1.position.set(300,400,220);L1.castShadow=true;L1.shadow.mapSize.set(2048,2048);Object.assign(L1.shadow.camera,{left:-380,right:380,top:380,bottom:-380,near:100,far:1400});L1.shadow.bias=-.0008;L1.shadow.radius=4;S.add(L1);const L2=new T.DirectionalLight(0xffffff,.3);L2.position.set(-300,120,-160);S.add(L2);
+ const m=(c,o={})=>new T.MeshStandardMaterial({color:c,roughness:.75,metalness:0,...o});SPH=new T.SphereGeometry(1,16,12);RG=[1,2,3,4].map(rockGeo);
+ MAT={wood:m(0xb98a55),woodD:m(0x8a6238),steel:m(0x9aa4ab,{metalness:.55,roughness:.42}),dark:m(0x4b545a,{metalness:.4,roughness:.55}),brass:m(0xc49a45,{metalness:.65,roughness:.35}),ceramic:m(0xd8d2c2,{roughness:.2}),accent:m(0xd12fbc),rod:m(0x3f86d8),stone:m(0x8b9093,{flatShading:true,roughness:.95}),stoneD:m(0x65696c,{flatShading:true,roughness:.95})};
+ const zg=new T.BoxGeometry(5.89,57.84,462.6);zoneM=new T.Mesh(zg,new T.MeshBasicMaterial({color:0xf4e76b,transparent:true,opacity:.14,depthWrite:false,side:T.DoubleSide}));zoneM.position.set(0,8.46,0);zoneM.add(new T.LineSegments(new T.EdgesGeometry(zg),new T.LineBasicMaterial({color:0xcdbb35})));zoneM.visible=false;S.add(zoneM);
+ const gh=new T.GridHelper(1200,24,0xe6e7e7,0xeeefef);gh.position.y=-9.05;S.add(gh);const fl=new T.Mesh(new T.PlaneGeometry(2000,2000),new T.ShadowMaterial({opacity:.16}));fl.rotation.x=-PI/2;fl.position.y=-9.02;fl.receiveShadow=true;S.add(fl);
+ build();applyParts();const c=$('#c');let dn=null,tH=0;
+ c.addEventListener('pointerdown',e=>{if(mode==='play'){initAudio();O.enabled=e.pointerType==='mouse';P.down=e.pointerType==='mouse';P.x=e.clientX;P.y=e.clientY;P.on=true}else O.enabled=true},true);
+ c.addEventListener('pointerdown',e=>{dn={x:e.clientX,y:e.clientY,t:performance.now()}});
+ c.addEventListener('pointerup',e=>{if(!dn)return;const moved=hypot(e.clientX-dn.x,e.clientY-dn.y),quick=performance.now()-dn.t<500;dn=null;P.down=false;if(e.pointerType!=='mouse')P.on=false;if(moved<6&&quick){if(mode==='play'){const a=hitAt(e.clientX,e.clientY);if(a)playHit(a,2.2,true)}else select(pickAt(e.clientX,e.clientY))}});
+ c.addEventListener('pointermove',e=>{if(mode==='play'){const n=performance.now();P.v=max(P.v,hypot(e.clientX-P.lx,e.clientY-P.ly)/max(.008,(n-P.lt)/1000));P.lx=e.clientX;P.ly=e.clientY;P.lt=n;P.x=e.clientX;P.y=e.clientY;if(e.pointerType==='mouse'){P.down=!!e.buttons;P.on=true}return}if(e.pointerType!=='mouse'||e.buttons)return;const now=performance.now();if(now-tH<90)return;tH=now;const id=pickAt(e.clientX,e.clientY);$('#hover').textContent=id?parts[id].name:'';c.style.cursor=id?'pointer':''});
+ c.addEventListener('pointerleave',()=>{$('#hover').textContent='';P.on=false;P.lastI=null;P.lastKey=''});
+ size();view('angle',true);new ResizeObserver(size).observe(c);last=performance.now();requestAnimationFrame(loop);
+}catch(err){$('#c').style.display='none';$('#gl').style.display='block';$('#views').hidden=true;console.error(err)}
+</script>
+
+</html>
